@@ -1,4 +1,19 @@
-// cmd.h -- (C) 2011 Tillmann Werner, <tillmann.werner@kaspersky.com
+/*
+  cmd.h
+  Copyright (C) 2011 Tillmann Werner, tillmann.werner@gmx.de
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License version 2 as 
+  published by the Free Software Foundation.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifndef __CMD_H
 #define __CMD_H
@@ -36,7 +51,7 @@ static cmd commands[] = {
 	{ "help", cmd_help, "\tshow help (this output)" },
 	{ "list", cmd_list, "\tlist streams" },
 	{ "match", cmd_match, "\tspecify a content pattern, use 'x [pattern]' for patterns in hexadecimal encoding" },
-	{ "offset", cmd_offset, "\tset datalink layer offset for packet trace file" },
+	{ "offset", cmd_offset, "set datalink layer offset for packet trace file" },
 	{ "outfile", cmd_outfile, "specify an output file for stream dumps (see dumo)" },
 	{ "pipe", cmd_pipe, "\tpipe selected stream through an external program (see ext)" },
 	{ "quit", cmd_quit, "\tquit program" },

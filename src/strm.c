@@ -1,6 +1,22 @@
-// strm.c -- (C) 2011 Tillmann Werner, <tillmann.werner@kaspersky.com
+/*
+  strm.c
+  Copyright (C) 2011 Tillmann Werner, tillmann.werner@gmx.de
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License version 2 as 
+  published by the Free Software Foundation.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <arpa/inet.h>
+#include <assert.h>
 #include <errno.h>
 #include <getopt.h>
 #include <netinet/ip.h>
@@ -26,7 +42,7 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 	struct tcphdr *tcp;
 	hash_entry_t *he;
 	stream *strm;
-	int plen;
+	u_int32_t plen;
 	u_char *payload;
 	int embd_offset = 0;
 
@@ -67,6 +83,7 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 			strm->d.addr = ip->daddr;
 			strm->d.port = tcp->dest;
 			strm->start = h->ts;
+			strm->match = matchexpr ? 0 : 1;
 
 			// add stream to chronological list
 			if ((slist = realloc(slist, (stream_total_count + 1) * sizeof(stream *))) == NULL) {
@@ -90,10 +107,7 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 			strm = he->data;
 			strm->end = h->ts;
 
-			if (!strm->complete) {
-printf("--> increasing counter %u\n", stream_complete_count);
- stream_complete_count++;
-			}
+			if (!strm->complete) stream_complete_count++;
 			strm->complete = 1;
 
 			// if a match expression is defined: check if stream matches
@@ -107,6 +121,8 @@ printf("--> increasing counter %u\n", stream_complete_count);
 			strm = he->data;
 			strm->end = h->ts;
 			if (strm && plen) {
+				assert(ntohl(tcp->seq) > strm->isn);
+
 				// basic overwrite style stream reassembly
 				if (strm->len < (ntohl(tcp->seq) - strm->isn + plen - 1)) {
 					// need more space
