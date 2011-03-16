@@ -36,6 +36,9 @@
 #define max(a, b) (a) > (b) ? (a) : (b)
 
 
+// Note that TCP stream reassembly is quite an expensive task. To quote the Wireshark Wiki: "Warning : memory is consumed like there is no tomorrow"
+
+
 void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
 	int dl_offset = *(int *) user;
 	struct iphdr *ip;
@@ -94,6 +97,7 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 
 			stream_total_count++;
 		} else strm = he->data;
+
 		strm->end = h->ts;
 
 		// data on syn? then add it to the stream (allowed per RFC, but should not really happen in practice)
@@ -101,29 +105,17 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 			memcpy(strm->data, payload, plen);
 			strm->len += plen;
 		}
-	} else if (tcp->fin || tcp->rst) {
-		if ((he = hash_lookup(ip->saddr, tcp->source, ip->daddr, tcp->dest, 0)) != NULL) {
-			// stream terminated, mark it as complete
-			strm = he->data;
-			strm->end = h->ts;
-
-			if (!strm->complete) stream_complete_count++;
-			strm->complete = 1;
-
-			// if a match expression is defined: check if stream matches
-			strm->match = 1;
-			if (matchexpr && memmem(strm->data, strm->len, matchexpr, strlen(matchexpr)) == NULL)
-				strm->match = 0;
-		}
 	} else {
 		// look up stream in hash map and add payload if entry is found
 		if ((he = hash_lookup(ip->saddr, tcp->source, ip->daddr, tcp->dest, 0)) != NULL) {
 			strm = he->data;
 			strm->end = h->ts;
-			if (strm && plen) {
-				assert(ntohl(tcp->seq) > strm->isn);
 
-				// basic overwrite style stream reassembly
+			assert(strm->isn <= ntohl(tcp->seq));
+
+			// basic overwrite style stream reassembly
+			if (strm && plen) {
+				// FIXME: need to handle wrapping sequence numbers
 				if (strm->len < (ntohl(tcp->seq) - strm->isn + plen - 1)) {
 					// need more space
 					if ((strm->data = realloc(strm->data, ntohl(tcp->seq) - strm->isn + plen - 1)) == NULL) {
@@ -133,6 +125,26 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 				}
 				memcpy(strm->data + ntohl(tcp->seq) - strm->isn - 1, payload, plen);
 				strm->len = max(strm->len, ntohl(tcp->seq) - strm->isn + plen - 1);
+			}
+
+			// if segment has the FIN or RST flag set, terminate the stream
+			if (tcp->fin || tcp->rst) {
+				if ((he = hash_lookup(ip->saddr, tcp->source, ip->daddr, tcp->dest, 1)) != NULL) {
+					// stream terminated, mark it as complete
+					strm = he->data;
+					strm->end = h->ts;
+
+					if (strm->len) {
+						// non-empty stream
+						stream_complete_count++;
+						strm->complete = 1;
+					}
+
+					// if a match expression is defined: check if stream matches
+					strm->match = 1;
+					if (matchexpr && memmem(strm->data, strm->len, matchexpr, strlen(matchexpr)) == NULL)
+						strm->match = 0;
+				}
 			}
 		}
 	}
@@ -163,7 +175,7 @@ int strm_list(int number) {
 				s->number,
 				(unsigned int) sdiff.tv_sec, (unsigned int) sdiff.tv_usec, (unsigned int) ediff.tv_sec, (unsigned int) ediff.tv_usec,
 				saddr, ntohs(s->s.port), daddr, ntohs(s->d.port), s->len,
-				s->complete ? "" : " [incomplete]");
+				s->complete ? "" : " [empty/incomplete]");
 		} else {
 			strftime(start, 20, "%Y-%m-%d %H:%M:%S", gmtime((time_t *) &s->start.tv_sec));
 			strftime(end, 20, "%Y-%m-%d %H:%M:%S", gmtime((time_t *) &s->end.tv_sec));
@@ -171,7 +183,7 @@ int strm_list(int number) {
 				s->number,
 				start, (unsigned int) s->start.tv_usec, end, (unsigned int) s->end.tv_usec,
 				saddr, ntohs(s->s.port), daddr, ntohs(s->d.port), s->len,
-				s->complete ? "" : " [incomplete]");
+				s->complete ? "" : " [empty/incomplete]");
 		}
 		if (number >= 0 && i == number) break;
 	}
