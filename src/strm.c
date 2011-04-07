@@ -174,7 +174,7 @@ int strm_list(int number) {
 			printf("%5d:  %6d.%06d  %6d.%06d  %s:%d > %s:%d (%lu bytes)%s\n",
 				s->number,
 				(unsigned int) sdiff.tv_sec, (unsigned int) sdiff.tv_usec, (unsigned int) ediff.tv_sec, (unsigned int) ediff.tv_usec,
-				saddr, ntohs(s->s.port), daddr, ntohs(s->d.port), s->len,
+				saddr, ntohs(s->s.port), daddr, ntohs(s->d.port), (long unsigned int) s->len,
 				s->complete ? "" : " [empty/incomplete]");
 		} else {
 			strftime(start, 20, "%Y-%m-%d %H:%M:%S", gmtime((time_t *) &s->start.tv_sec));
@@ -182,7 +182,7 @@ int strm_list(int number) {
 			printf("%5d:  %s.%06u  %s.%06u  %s:%d > %s:%d (%lu bytes)%s\n",
 				s->number,
 				start, (unsigned int) s->start.tv_usec, end, (unsigned int) s->end.tv_usec,
-				saddr, ntohs(s->s.port), daddr, ntohs(s->d.port), s->len,
+				saddr, ntohs(s->s.port), daddr, ntohs(s->d.port), (long unsigned int) s->len,
 				s->complete ? "" : " [empty/incomplete]");
 		}
 		if (number >= 0 && i == number) break;
