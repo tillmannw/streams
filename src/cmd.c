@@ -209,7 +209,7 @@ int cmd_dump(char *arg) {
 	}
 
 	fclose(f);
-	printf("%lu bytes written to %s\n", bytes, outfile);
+	printf("%lu bytes written to %s\n", (long unsigned int) bytes, outfile);
 
 
 	return 0;
