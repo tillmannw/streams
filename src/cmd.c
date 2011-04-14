@@ -16,7 +16,6 @@
 */
 
 #include <argz.h>
-#include <ctype.h>
 #include <pcap.h>
 #include <history.h>
 #include <readline.h>
@@ -30,6 +29,9 @@
 #include "streams.h"
 #include "strm.h"
 #include "util.h"
+
+#define max(a,b) ((a) > (b)) ? (a) : (b)
+#define min(a,b) ((a) < (b)) ? (a) : (b)
 
 
 int cmd_analyze(char *arg) {
@@ -49,6 +51,10 @@ int cmd_analyze(char *arg) {
 			return -1;
 		}
 		tracefile = strdup(filename);
+
+		// new file, reset global time stamp
+		global_start.tv_sec = 0;
+		global_start.tv_usec = 0;
 	} else {
 		// re-analyze currently selected packet source
 		if (pktsrc == NULL) {
@@ -462,47 +468,83 @@ int cmd_pipe(char *arg) {
 
 	close(fpipefd[0]); // close 1st pipe's read end
 	close(bpipefd[1]); // close 2nd pipe's write end
-	
-	// pipe stream to child's stdin
-	int total, written;
-	total = 0;
-	while (total < slist[n]->len) {
-		switch (written = write(fpipefd[1], slist[n]->data + total, slist[n]->len - total)) {
-		case -1:
-			perror("write()");
-			close(fpipefd[1]);
-			close(bpipefd[0]);
-			return -1;
-		default:
-			total += written;
-			break;
-		}
-	}
-	close(fpipefd[1]);
 
-	// read child's stdout and dump it
+	fd_set rfds, wfds;
+
+	FD_ZERO(&rfds);
+	FD_ZERO(&wfds);
+
+	FD_SET(fpipefd[1], &wfds);
+	FD_SET(bpipefd[0], &rfds);
+
 	char buffer[BUFSIZ];
-	int bytes;
-	int complete = 0;
-	while (complete == 0) {
-		switch (bytes = read(bpipefd[0], buffer, BUFSIZ)) {
-		case -1:
-			perror("read()");
-			close(bpipefd[0]);
-			return -1;
-		case 0:
-			complete = 1;
-			break;
-		default:
-			*buffer = toupper(*buffer);
-			if (write(STDOUT_FILENO, buffer, bytes) == -1) {
-				perror("write()");
-				close(bpipefd[0]);
-				return -1;
-			};
-			break;
+	int complete, bytes_total, bytes_written, bytes_read;
+
+	bytes_total = 0;
+	complete = 0;
+
+	for (;;) {
+		// make sure we poll what needs to be polled
+		if (bytes_total < slist[n]->len) {
+			 FD_SET(fpipefd[1], &wfds);
 		}
+		FD_SET(bpipefd[0], &rfds);
+
+		switch (select(max(fpipefd[1], bpipefd[0]) + 1, &rfds, &wfds, NULL, NULL)) {
+		case -1:
+			if (errno == EINTR) break;
+			perror("select()");
+			exit(EXIT_FAILURE);
+		default:
+			/*
+			   We *must* handle incoming data first as external programs
+			   might block otherwise when they buffer data to stdout.
+			   Thus, we only write data if there is no data to read.
+			*/
+			if (FD_ISSET(bpipefd[0], &rfds)) {
+				// read child's stdout and dump it
+				switch (bytes_read = read(bpipefd[0], buffer, BUFSIZ)) {
+				case -1:
+					perror("read()");
+					close(bpipefd[0]);
+					return -1;
+				case 0:
+					complete = 1;
+					break;
+				default:
+					if (write(STDOUT_FILENO, buffer, bytes_read) == -1) {
+						perror("write()");
+						close(bpipefd[0]);
+						return -1;
+					};
+					break;
+				}
+				break;	// breaking from the select loop here makes sure we read as much as possible at a time
+			}
+			if (FD_ISSET(fpipefd[1], &wfds)) {
+				// pipe stream to child's stdin
+				switch (bytes_written = write(fpipefd[1], slist[n]->data + bytes_total, min(slist[n]->len - bytes_total, BUFSIZ))) {
+				case -1:
+					perror("write()");
+					close(fpipefd[1]);
+					close(bpipefd[0]);
+					return -1;
+				default:
+					bytes_total += bytes_written;
+					printf("%d bytes written (%d in total)\n", bytes_written, bytes_total);
+					break;
+				}
+
+				if (bytes_total >= slist[n]->len) {
+					close(fpipefd[1]);
+					FD_ZERO(&wfds);
+				}
+			}
+		}
+
+		if (bytes_total >= slist[n]->len && complete) break;
 	}
+
 	close(bpipefd[0]);
 
 	// wait for child process to terminate
