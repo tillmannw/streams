@@ -8,7 +8,7 @@ streams is a tool for browsing, mining and processing TCP streams in pcap files.
 	  |_____| _  |_____|_____|   \__ \ |_| | |  __/ (_| | | | | | \__ \  _   _ _
 	       (_|_)____        (_)  |___/\__|_|  \___|\__,_|_| |_| |_|___/ (_) (_|_)
 		  |_____|
-			      version 0.1.0, Copyright (C) 2011 by Tillmann Werner
+			      version 0.1.1, Copyright (C) 2011 by Tillmann Werner
 
 	streams> help
 
@@ -22,11 +22,12 @@ streams is a tool for browsing, mining and processing TCP streams in pcap files.
 	  list		list streams
 	  match		specify a content pattern, use 'x [pattern]' for patterns in hexadecimal encoding
 	  offset	set datalink layer offset for packet trace file
-	  outfile	specify an output file for stream dumps (see dumo)
+	  outfile	specify an output file for stream dumps (see dump)
 	  pipe		pipe selected stream through an external program (see ext)
 	  quit		quit program
 	  status	display program status
 	  timestamps	toggle time display format (absolute/relative)
+	  timeout	set tcp session timeout (needed to detect port reuse)
 
 	streams> analyze /tmp/http.pcap 
 	file processed, 4 streams (2 non-empty and complete).
@@ -55,20 +56,6 @@ streams is a tool for browsing, mining and processing TCP streams in pcap files.
 	streams> outfile /tmp/streams.bin
 	streams> dump 3
 	7397 bytes written to /tmp/streams.bin
-	streams> match GET
-	applying new match expression...
-	streams> list
-	    0:       0.000000      40.873249  192.168.178.47:56628 > 92.123.68.42:80 (137 bytes) [incomplete]
-	    1:       0.000436      44.889474  192.168.178.47:56630 > 92.123.68.42:80 (137 bytes) [incomplete]
-	    2:       0.042225      40.832919  92.123.68.42:80 > 192.168.178.47:56628 (7484 bytes)
-	    3:       0.042321      44.841711  92.123.68.42:80 > 192.168.178.47:56630 (7397 bytes)
-	streams> match HTTP/1.1
-	applying new match expression...
-	streams> list
-	    0:       0.000000      40.873249  192.168.178.47:56628 > 92.123.68.42:80 (137 bytes) [incomplete]
-	    1:       0.000436      44.889474  192.168.178.47:56630 > 92.123.68.42:80 (137 bytes) [incomplete]
-	    2:       0.042225      40.832919  92.123.68.42:80 > 192.168.178.47:56628 (7484 bytes)
-	    3:       0.042321      44.841711  92.123.68.42:80 > 192.168.178.47:56630 (7397 bytes)
 	streams> match Moved
 	applying new match expression...
 	streams> list

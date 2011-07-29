@@ -40,6 +40,7 @@ int cmd_quit(char *arg);
 int cmd_status(char *arg);
 int cmd_filter(char *arg);
 int cmd_timestamps(char *arg);
+int cmd_timeout(char *arg);
 
 static cmd commands[] = {
 	{ "analyze", cmd_analyze, "analyze trace file" },
@@ -52,11 +53,12 @@ static cmd commands[] = {
 	{ "list", cmd_list, "\tlist streams" },
 	{ "match", cmd_match, "\tspecify a content pattern, use 'x [pattern]' for patterns in hexadecimal encoding" },
 	{ "offset", cmd_offset, "set datalink layer offset for packet trace file" },
-	{ "outfile", cmd_outfile, "specify an output file for stream dumps (see dumo)" },
+	{ "outfile", cmd_outfile, "specify an output file for stream dumps (see dump)" },
 	{ "pipe", cmd_pipe, "\tpipe selected stream through an external program (see ext)" },
 	{ "quit", cmd_quit, "\tquit program" },
 	{ "status", cmd_status, "display program status" },
 	{ "timestamps", cmd_timestamps, "toggle time display format (absolute/relative)" },
+	{ "timeout", cmd_timeout, "set tcp session timeout (needed to detect port reuse)" },
 	{ NULL, NULL, NULL }
 };
 

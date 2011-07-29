@@ -127,6 +127,7 @@ int main(int argc, char *argv[]) {
 	relative_timestamps = 1;
 	filter_streams = 1;
 	offset = 0;
+	tcp_timeout = 30;	// set default tcp timeout to 30 seconds
 
 	if (argc > 1) {
 		char *command;

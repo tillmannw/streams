@@ -60,14 +60,47 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 
 	ip = (struct iphdr *) (bytes + dl_offset + embd_offset);
 
+	// ignore non-TCP packets for now
+	if (ip->protocol != 6) return;
+
 	if (h->len < dl_offset + embd_offset + (4 * ip->ihl) + sizeof(struct tcphdr)) return;
 	tcp = (struct tcphdr *) (bytes + dl_offset + embd_offset + (4 * ip->ihl));
-	payload = (u_char *) (bytes + dl_offset + embd_offset + (4 * (ip->ihl + tcp->doff)));
 
+	payload = (u_char *) (bytes + dl_offset + embd_offset + (4 * (ip->ihl + tcp->doff)));
 	plen = ntohs(ip->tot_len) - (4 * (ip->ihl + tcp->doff));
 
+/*
+char s[16], d[16];
+printf("%s:%d > %s:%d %c%c%c%c %u\n", inet_ntop(AF_INET, &ip->saddr, s, 16), ntohs(tcp->source), inet_ntop(AF_INET, &ip->daddr, d, 16), ntohs(tcp->dest),
+	tcp->fin ? 'F' : '.', tcp->syn ? 'S' : '.', tcp->rst ? 'R' : '.', tcp->ack ? 'A' : '.', ntohl(tcp->seq));
+*/
+
+	// search for a stream this segment may belong to
+	he = hash_lookup(ip->saddr, tcp->source, ip->daddr, tcp->dest, 0);
+
+	if (he != NULL) {
+		// tcp session timeout exceeded?
+		strm = he->data;
+		if (h->ts.tv_sec - strm->end.tv_sec > tcp_timeout) {
+			// stream timed out, remove it from hash table
+			if ((he = hash_lookup(ip->saddr, tcp->source, ip->daddr, tcp->dest, 1)) == NULL) {
+				fprintf(stderr, "Error while processing timed out stream.\n");
+				exit(EXIT_FAILURE);
+			}
+
+			// if a match expression is defined: check if stream matches
+			strm->match = 1;
+			if (matchexpr && memmem(strm->data, strm->len, matchexpr, strlen(matchexpr)) == NULL)
+				strm->match = 0;
+
+			// hashmap entry has already been removed from the map, now free it
+			free(he);
+			he = NULL;
+		}
+	}
+
 	if (tcp->syn) {
-		if ((he = hash_lookup(ip->saddr, tcp->source, ip->daddr, tcp->dest, 0)) == NULL) {
+		if (he == NULL) {
 			// new stream, insert it into the hash table
 			if (((strm = calloc(1, sizeof(stream))) == NULL) ||
 			    ((strm->data = malloc(plen)) == NULL)) {
@@ -106,12 +139,21 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 			strm->len += plen;
 		}
 	} else {
-		// look up stream in hash map and add payload if entry is found
-		if ((he = hash_lookup(ip->saddr, tcp->source, ip->daddr, tcp->dest, 0)) != NULL) {
+		// if a stream exists, add payload
+		if (he != NULL) {
 			strm = he->data;
 			strm->end = h->ts;
 
-			assert(strm->isn <= ntohl(tcp->seq));
+			// FIXME: need to handle wrapping sequence numbers
+			if (strm->isn > ntohl(tcp->seq)) {
+				char s[16], d[16];
+				printf("Error: cannot handle packet for stream: %s:%d > %s:%d %c%c%c%c %u (ISN was %u)\n",
+					inet_ntop(AF_INET, &ip->saddr, s, 16), ntohs(tcp->source),
+					inet_ntop(AF_INET, &ip->daddr, d, 16), ntohs(tcp->dest),
+					tcp->fin ? 'F' : '.', tcp->syn ? 'S' : '.', tcp->rst ? 'R' : '.', tcp->ack ? 'A' : '.',
+					ntohl(tcp->seq), strm->isn);
+				exit(EXIT_FAILURE);
+			}
 
 			// basic overwrite style stream reassembly
 			if (strm && plen) {

@@ -398,7 +398,8 @@ int cmd_match(char *arg) {
 int cmd_pipe(char *arg) {
 	char **argv, *argz, *number;
 	int fpipefd[2], bpipefd[2]; // pipes for bidirectional communication with a child process
-	int pid, n;
+	int pid;
+	unsigned int n;
 	size_t argzlen;
 
 	if (pktsrc == NULL) {
@@ -428,7 +429,7 @@ int cmd_pipe(char *arg) {
 	}
 	n = strtoul(number, NULL, 0);
 
-	if (n > stream_total_count) {
+	if (n >= stream_total_count) {
 		printf("no such stream\n");
 		return -1;
 	}
@@ -599,6 +600,7 @@ int cmd_status(char *arg) {
 	}
 	printf("  stream filter:\t%s\n", filter_streams ? "on (exclude empty and incomplete streams)" : "off (list all streams)");
 	printf("  time display mode:\t%s\n", relative_timestamps ? "relative" : "absolute");
+	printf("  tcp seession timeout:\t%u seconds\n", tcp_timeout);
 	printf("  external program:\t%s\n", extprog ? extprog : "[none]");
 	printf("  output file:\t\t%s\n", outfile ? outfile : "[none]");
 	putchar('\n');
@@ -616,5 +618,19 @@ int cmd_filter(char *arg) {
 int cmd_timestamps(char *arg) {
 	relative_timestamps ^= 1;
 	printf("timestamps: %s\n", relative_timestamps ? "relative" : "absolute");
+	return 0;
+};
+
+int cmd_timeout(char *arg) {
+	char *timeout;
+
+	if ((timeout = strchr(arg, ' ')) == NULL) {
+		printf("timeout: need an argument\n");
+		return -1;
+	}
+	tcp_timeout = strtoul(timeout, NULL, 0);
+
+	printf("new tcp session timeout: %u seconds\n", tcp_timeout);
+
 	return 0;
 };

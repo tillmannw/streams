@@ -45,6 +45,7 @@ int stream_total_count;
 int stream_complete_count;
 int relative_timestamps;
 int filter_streams;
+unsigned int tcp_timeout;
 struct timeval global_start;
 
 void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
