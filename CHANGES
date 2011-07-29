@@ -2,3 +2,4 @@ v0.1.1
 - tcp session timeout, required for detecting port reuse
 - fixed an off-by-one bug in the stream selection code
 - reassembly code restructured to improve speed (less hash lookups)
+- ports command for basic stream destination port statistics

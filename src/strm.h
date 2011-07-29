@@ -40,6 +40,13 @@ typedef struct {
 
 stream **slist;
 
+typedef struct {
+	uint16_t port;
+	size_t count;
+} portstat;
+
+portstat pstats[0x10000];
+
 pcap_t *pktsrc;
 int stream_total_count;
 int stream_complete_count;
@@ -50,5 +57,6 @@ struct timeval global_start;
 
 void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
 int strm_list(int number);
+int portcmp(const void *a, const void *b);
 
 #endif

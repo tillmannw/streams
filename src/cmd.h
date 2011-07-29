@@ -36,6 +36,7 @@ int cmd_match(char *arg);
 int cmd_offset(char *arg);
 int cmd_outfile(char *arg);
 int cmd_pipe(char *arg);
+int cmd_ports(char *arg);
 int cmd_quit(char *arg);
 int cmd_status(char *arg);
 int cmd_filter(char *arg);
@@ -55,6 +56,7 @@ static cmd commands[] = {
 	{ "offset", cmd_offset, "set datalink layer offset for packet trace file" },
 	{ "outfile", cmd_outfile, "specify an output file for stream dumps (see dump)" },
 	{ "pipe", cmd_pipe, "\tpipe selected stream through an external program (see ext)" },
+	{ "ports", cmd_ports, "\tprint basic stream destination port statistics" },
 	{ "quit", cmd_quit, "\tquit program" },
 	{ "status", cmd_status, "display program status" },
 	{ "timestamps", cmd_timestamps, "toggle time display format (absolute/relative)" },

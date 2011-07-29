@@ -59,4 +59,3 @@ struct timeval timediff(struct timeval x, struct timeval y) {
 
 	return result;
 }
-

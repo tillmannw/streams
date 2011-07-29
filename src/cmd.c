@@ -67,6 +67,10 @@ int cmd_analyze(char *arg) {
 	if (slist) free(slist);
 	slist = NULL;
 
+	// flush port stats
+	memset(pstats, 0, 0x10000 * sizeof(portstat));
+	for (i=0; i<0x10000; ++i) pstats[i].port = i;
+
 	// initialize stream hash map
 	he = NULL;
 	next = NULL;
@@ -555,6 +559,20 @@ int cmd_pipe(char *arg) {
 		perror("waitpid()");
 		return -1;
 	}
+
+	return 0;
+};
+
+
+int cmd_ports(char *arg) {
+	int i;
+	portstat ps[0x10000];
+
+	memcpy(ps, pstats, 0x10000 * sizeof(portstat));
+	qsort(ps, 0x10000, sizeof(portstat), portcmp);
+
+	for (i = 0; i < 0x10000; ++i)
+		if (ps[i].count) printf(" %5u: %lu\n", ps[i].port, ps[i].count);
 
 	return 0;
 };

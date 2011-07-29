@@ -121,6 +121,8 @@ printf("%s:%d > %s:%d %c%c%c%c %u\n", inet_ntop(AF_INET, &ip->saddr, s, 16), nto
 			strm->start = h->ts;
 			strm->match = matchexpr ? 0 : 1;
 
+			pstats[ntohs(tcp->dest)].count++;
+
 			// add stream to chronological list
 			if ((slist = realloc(slist, (stream_total_count + 1) * sizeof(stream *))) == NULL) {
 				perror("realloc()");
@@ -194,6 +196,7 @@ printf("%s:%d > %s:%d %c%c%c%c %u\n", inet_ntop(AF_INET, &ip->saddr, s, 16), nto
 	return;
 }
 
+
 int strm_list(int number) {
 	stream *s;
 	int i;
@@ -229,5 +232,15 @@ int strm_list(int number) {
 		}
 		if (number >= 0 && i == number) break;
 	}
+	return 0;
+}
+
+
+int portcmp(const void *a, const void *b) {
+	portstat *pa = (portstat *) a;
+	portstat *pb = (portstat *) b;
+
+	if (pa->count > pb->count) return 1;
+	if (pa->count < pb->count) return -1;
 	return 0;
 }
