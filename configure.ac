@@ -4,8 +4,8 @@
 # $Id$
 
 AC_PREREQ(2.59)
-AC_INIT([streams], [0.1.1], [tillmann.werner@gmx.de])
-AM_INIT_AUTOMAKE([streams], [0.1.1])
+AC_INIT([streams], [0.1.2], [tillmann.werner@gmx.de])
+AM_INIT_AUTOMAKE([streams], [0.1.2])
 AC_REVISION([$Id$])
 
 AC_PREFIX_DEFAULT(/opt/streams)
