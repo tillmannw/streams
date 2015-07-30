@@ -71,8 +71,8 @@ void strm_assemble(u_char *user, const struct pcap_pkthdr *h, const u_char *byte
 
 /*
 char s[16], d[16];
-printf("%s:%d > %s:%d %c%c%c%c %u\n", inet_ntop(AF_INET, &ip->saddr, s, 16), ntohs(tcp->source), inet_ntop(AF_INET, &ip->daddr, d, 16), ntohs(tcp->dest),
-	tcp->fin ? 'F' : '.', tcp->syn ? 'S' : '.', tcp->rst ? 'R' : '.', tcp->ack ? 'A' : '.', ntohl(tcp->seq));
+printf("%s:%d > %s:%d %c%c%c%c %u (%d bytes)\n", inet_ntop(AF_INET, &ip->saddr, s, 16), ntohs(tcp->source), inet_ntop(AF_INET, &ip->daddr, d, 16), ntohs(tcp->dest),
+	tcp->fin ? 'F' : '.', tcp->syn ? 'S' : '.', tcp->rst ? 'R' : '.', tcp->ack ? 'A' : '.', ntohl(tcp->seq), plen);
 */
 
 	// search for a stream this segment may belong to
@@ -137,7 +137,7 @@ printf("%s:%d > %s:%d %c%c%c%c %u\n", inet_ntop(AF_INET, &ip->saddr, s, 16), nto
 
 		// data on syn? then add it to the stream (allowed per RFC, but should not really happen in practice)
 		if (plen) {
-			memcpy(strm->data, payload, plen);
+			memmove(strm->data, payload, plen);
 			strm->len += plen;
 		}
 	} else {
@@ -147,7 +147,7 @@ printf("%s:%d > %s:%d %c%c%c%c %u\n", inet_ntop(AF_INET, &ip->saddr, s, 16), nto
 			strm->end = h->ts;
 
 			// FIXME: need to handle wrapping sequence numbers
-			if (strm->isn > ntohl(tcp->seq)) {
+			if (!tcp->rst && strm->isn > ntohl(tcp->seq)) {
 				char s[16], d[16];
 				printf("Error: cannot handle packet for stream: %s:%d > %s:%d %c%c%c%c %u (ISN was %u)\n",
 					inet_ntop(AF_INET, &ip->saddr, s, 16), ntohs(tcp->source),
@@ -159,15 +159,16 @@ printf("%s:%d > %s:%d %c%c%c%c %u\n", inet_ntop(AF_INET, &ip->saddr, s, 16), nto
 
 			// basic overwrite style stream reassembly
 			if (strm && plen) {
+// FIXME: bad things happen if a duplicate ISN segments with data arrives
 				// FIXME: need to handle wrapping sequence numbers
-				if (strm->len < (ntohl(tcp->seq) - strm->isn + plen - 1)) {
+				if (strm->len < (ntohl(tcp->seq) - strm->isn + plen)) {
 					// need more space
-					if ((strm->data = realloc(strm->data, ntohl(tcp->seq) - strm->isn + plen - 1)) == NULL) {
+					if ((strm->data = realloc(strm->data, ntohl(tcp->seq) - strm->isn + plen)) == NULL) {
 						perror("realloc()");
 						exit(EXIT_FAILURE);
 					}
 				}
-				memcpy(strm->data + ntohl(tcp->seq) - strm->isn - 1, payload, plen);
+				memmove(strm->data + ntohl(tcp->seq) - strm->isn - 1, payload, plen);
 				strm->len = max(strm->len, ntohl(tcp->seq) - strm->isn + plen - 1);
 			}
 

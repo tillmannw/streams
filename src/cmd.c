@@ -210,7 +210,8 @@ int cmd_dump(char *arg) {
 		perror("fopen()");
 		return -1;
 	}
-	size_t bytes = fwrite(slist[n]->data, 1, slist[n]->len, f);
+
+	fwrite(slist[n]->data, 1, slist[n]->len, f);
 
 	if (ferror(f)) {
 		perror("fwrite()");
@@ -219,8 +220,6 @@ int cmd_dump(char *arg) {
 	}
 
 	fclose(f);
-	printf("%lu bytes written to %s\n", (long unsigned int) bytes, outfile);
-
 
 	return 0;
 };
@@ -536,7 +535,6 @@ int cmd_pipe(char *arg) {
 					return -1;
 				default:
 					bytes_total += bytes_written;
-					printf("%d bytes written (%d in total)\n", bytes_written, bytes_total);
 					break;
 				}
 
