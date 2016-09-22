@@ -114,6 +114,7 @@ printf("%s:%d > %s:%d %c%c%c%c %u (%d bytes)\n", inet_ntop(AF_INET, &ip->saddr, 
 			strm = he->data;
 			strm->number = stream_total_count;
 			strm->isn = ntohl(tcp->seq);
+			strm->relisn = ntohl(tcp->seq);
 			strm->s.addr = ip->saddr;
 			strm->s.port = tcp->source;
 			strm->d.addr = ip->daddr;
@@ -146,29 +147,32 @@ printf("%s:%d > %s:%d %c%c%c%c %u (%d bytes)\n", inet_ntop(AF_INET, &ip->saddr, 
 			strm = he->data;
 			strm->end = h->ts;
 
-			// FIXME: need to handle wrapping sequence numbers
-			if (!tcp->rst && strm->isn > ntohl(tcp->seq)) {
-				char s[16], d[16];
-				printf("Error: cannot handle packet for stream: %s:%d > %s:%d %c%c%c%c %u (ISN was %u)\n",
-					inet_ntop(AF_INET, &ip->saddr, s, 16), ntohs(tcp->source),
-					inet_ntop(AF_INET, &ip->daddr, d, 16), ntohs(tcp->dest),
-					tcp->fin ? 'F' : '.', tcp->syn ? 'S' : '.', tcp->rst ? 'R' : '.', tcp->ack ? 'A' : '.',
-					ntohl(tcp->seq), strm->isn);
-				exit(EXIT_FAILURE);
+			// check if sequence number wrapped around and is in a valid range
+			if (strm->isn == strm->relisn && strm->isn > ntohl(tcp->seq)) {
+				// sanity check, drop stream if wrapped segment is more than one megabyte into the stream
+				if (ntohl(tcp->seq) - strm->isn > 1024 * 1024) {
+					char s[16], d[16];
+					printf("Error: cannot handle packet with wrapped sequence number %d for stream: %s:%d > %s:%d %c%c%c%c %u (ISN was %u)\n",
+						ntohl(tcp->seq),
+						inet_ntop(AF_INET, &ip->saddr, s, 16), ntohs(tcp->source),
+						inet_ntop(AF_INET, &ip->daddr, d, 16), ntohs(tcp->dest),
+						tcp->fin ? 'F' : '.', tcp->syn ? 'S' : '.', tcp->rst ? 'R' : '.', tcp->ack ? 'A' : '.',
+						ntohl(tcp->seq), strm->isn);
+					exit(EXIT_FAILURE);
+				}
 			}
 
 			// basic overwrite style stream reassembly
 			if (strm && plen) {
-// FIXME: bad things happen if a duplicate ISN segments with data arrives
-				// FIXME: need to handle wrapping sequence numbers
+				// FIXME: bad things happen if a duplicate ISN segments with data arrives
 				if (strm->len < (ntohl(tcp->seq) - strm->isn + plen)) {
 					// need more space
-					if ((strm->data = realloc(strm->data, ntohl(tcp->seq) - strm->isn + plen)) == NULL) {
+					if ((strm->data = realloc(strm->data, (u_int32_t) (ntohl(tcp->seq) - strm->isn + plen))) == NULL) {
 						perror("realloc()");
 						exit(EXIT_FAILURE);
 					}
 				}
-				memmove(strm->data + ntohl(tcp->seq) - strm->isn - 1, payload, plen);
+				memmove(strm->data + (ntohl(tcp->seq) - strm->isn) - 1, payload, plen);
 				strm->len = max(strm->len, ntohl(tcp->seq) - strm->isn + plen - 1);
 			}
 

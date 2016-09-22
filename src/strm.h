@@ -34,6 +34,7 @@ typedef struct {
 		u_int16_t port;
 	} s, d;
 	u_int32_t isn;
+	int64_t relisn;
 	struct timeval start;
 	struct timeval end;
 } stream;

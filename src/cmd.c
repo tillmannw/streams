@@ -1,6 +1,6 @@
 /*
   cmd.c
-  Copyright (C) 2011 Tillmann Werner, tillmann.werner@gmx.de
+  Copyright (C) 2011-2016 Tillmann Werner, tillmann.werner@gmx.de
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2 as 
@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <zlib.h>
 
 #include "cmd.h"
 #include "hash.h"
