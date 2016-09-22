@@ -1,17 +1,17 @@
-# streams -- interactive command line tool for fast TCP stream processing
+# Interactive command line tool for fast TCP stream processing
 
 *streams* is a tool for browsing, mining and processing TCP streams in pcap files. It provides a command line prompt for filtering, selecting and dumping reassembled session data. It can further invoke external tools to pipe stream data through. Here is the output of an example session:
 
 
 ```
 $ /opt/streams/bin/streams
-				  _
-	      _____ _____     ___| |_ _ __ ___  __ _ _ __ ___  ___
+                                  _
+              _____ _____     ___| |_ _ __ ___  __ _ _ __ ___  ___
    _____     |_____|_____|   / __| __| '__/ _ \/ _` | '_ ` _ \/ __|
   |_____| _  |_____|_____|   \__ \ |_| | |  __/ (_| | | | | | \__ \  _   _ _
        (_|_)____        (_)  |___/\__|_|  \___|\__,_|_| |_| |_|___/ (_) (_|_)
-	  |_____|
-		      version 0.1.2, Copyright (C) 2011-2016 by Tillmann Werner
+          |_____|
+                      version 0.1.2, Copyright (C) 2011-2016 by Tillmann Werner
 
 streams> help
 
