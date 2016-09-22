@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 		"  |_____| _  |_____|_____|   \\__ \\ |_| | |  __/ (_| | | | | | \\__ \\  _   _ _\n" \
 		"       (_|_)____        (_)  |___/\\__|_|  \\___|\\__,_|_| |_| |_|___/ (_) (_|_)\n" \
 		"          |_____|\n" \
-		"                      version %s, Copyright (C) 2011-2015 by Tillmann Werner\n\n", VERSION);
+		"                      version %s, Copyright (C) 2011-2016 by Tillmann Werner\n\n", VERSION);
 
 
 	rl_attempted_completion_function = command_complete;
