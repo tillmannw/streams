@@ -115,10 +115,12 @@ int cmd_analyze(char *arg) {
 	if (!offset) switch (pcap_datalink(pktsrc)) {
 	case DLT_RAW: offset = 0; break;
 	case DLT_PPP: offset = 2; break;
+	case DLT_NULL: offset = 4; break;
 	case DLT_LOOP: offset = 14; break;
 	case DLT_EN10MB: offset = 14; break;
+	case DLT_LINUX_SLL: offset = 16; break;
 	default:
-		printf("unsupported data link type.\n");
+		printf("unsupported data link type: %d.\n", pcap_datalink(pktsrc));
 		return -1;
 	}
 
